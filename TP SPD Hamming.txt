@@ -1,0 +1,206 @@
+#include <LiquidCrystal.h>
+
+#define BUZZER_PIN 2
+#define BUTTON_RIGHT 0
+#define BUTTON_UP 1
+#define BUTTON_DOWN 2
+#define BUTTON_LEFT 3
+#define BUTTON_SELECT 4
+#define BUTTON_NONE 5
+
+/*********** Declaración de prototipos ********/
+void showBits();
+void moverCursor(int boton);
+void hamming();
+int readButtons();
+
+
+/*********** Declaración de variables ********/
+LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
+
+int pasos = 0;
+int posicion[4]= {-1, -1, -1, -1};
+int posicionDato = 0;
+int pUno = 0;
+int pDos = 0;
+int pTres = 0;
+
+
+void setup() {
+  
+  pinMode(13, OUTPUT);
+  pinMode(12, OUTPUT);
+  pinMode(11, OUTPUT);
+  pinMode(11, OUTPUT);
+  pinMode(A3, OUTPUT);
+  pinMode(A4, OUTPUT);
+  pinMode(A5, OUTPUT);  
+  lcd.begin(16, 2);
+}
+
+void loop() {
+  
+     int currentButton = readButtons();
+     int bitDato;
+   
+      switch(pasos)
+      {
+        case 0:
+              lcd.setCursor(0, 0);
+              lcd.print("Press Select");
+              if(currentButton == BUTTON_SELECT) 
+              {
+                pasos = 1;
+              }
+              break;
+              
+        case 1:
+        	 lcd.print("            ");
+             showBits();
+              
+             switch(currentButton)
+             {
+                case  BUTTON_UP:
+               				if(posicion[posicionDato] <= 0)
+                            {
+                             	posicion[posicionDato]++; 
+                            }
+               				else
+                            {
+                              posicion[posicionDato]--;
+                            }
+               				if(posicion[posicionDato] > 1)
+                            {
+                              posicion[posicionDato]--;
+                            }                                                
+                            break;
+               
+                case  BUTTON_DOWN:
+                            if(posicion[posicionDato] <= 0)
+                            {
+                             	posicion[posicionDato]++; 
+                            }
+               				else
+                            {
+                              posicion[posicionDato]--;
+                            }
+               				if(posicion[posicionDato] > 1)
+                            {
+                              posicion[posicionDato]--;
+                            }
+                            break;
+               
+               case  BUTTON_RIGHT:
+                            moverCursor(BUTTON_RIGHT);
+                            break;
+               
+               case  BUTTON_LEFT:
+                            moverCursor(BUTTON_LEFT);
+                            break;
+               
+               case BUTTON_SELECT:
+               				if(posicion[0] > -1 && posicion[1] > -1 && posicion[2] > -1 && posicion[3] > -1)
+                            {
+                              pasos = 2;
+                            }               				                                       
+               				break;                             
+             }
+           
+              break;
+        
+        case 2:
+              hamming();
+        	  digitalWrite(13, pUno);
+ 			  digitalWrite(12, pDos);
+              digitalWrite(11, posicion[0]);
+ 			  digitalWrite(10, pTres);
+ 			  digitalWrite(A3, posicion[1]);
+  			  digitalWrite(A4, posicion[2]);
+ 			  digitalWrite(A5, posicion[4]);
+              break;
+              
+      
+      }
+}
+
+  
+  
+void showBits()
+{
+  lcd.setCursor(0,1);
+  lcd.print("          ");
+  lcd.setCursor(0,0);
+  for(int i = 0; i<4;i++)
+  {
+    if(posicion[i]<0)
+    {
+      lcd.print("*");
+    }
+    else
+    {
+      lcd.print(posicion[i]);
+    }
+  }
+  lcd.print("        ");
+  lcd.setCursor(posicionDato, 1);
+  lcd.print("^");
+  
+}
+
+void moverCursor(int boton)
+{
+    if(boton == BUTTON_RIGHT)
+  {
+    posicionDato++;
+  }
+  else
+  {
+  	posicionDato--;
+  }
+  if(posicionDato < 0)
+  {
+    posicionDato = 3;    
+  }
+  else if(posicionDato > 3)
+  {
+    posicionDato = 0;
+  }
+
+  
+}
+
+void hamming()
+{
+  if ((posicion[0] == 0 && posicion[1] == 0 && posicion[3] == 1) || (posicion[0] == 0 && posicion[1] == 1 && posicion[3] == 0) || (posicion[0] == 1 && posicion[1] == 1 && posicion[3] == 1) || (posicion[0] == 1 && posicion[1] == 0 && posicion[3] == 0))
+  {
+    pUno = 1;
+  }
+  if ((posicion[0] == 0 && posicion[2] == 0 && posicion[3] == 1) || (posicion[0] == 0 && posicion[2] == 1 && posicion[3] == 0) || (posicion[0] == 1 && posicion[2] == 1 && posicion[3] == 1) || (posicion[0] == 1 && posicion[2] == 0 && posicion[3] == 0))
+  {
+    pDos = 1;
+  }
+  if ((posicion[1] == 0 && posicion[2] == 0 && posicion[3] == 1) || (posicion[1] == 0 && posicion[2] == 1 && posicion[3] == 0) || (posicion[1] == 1 && posicion[2] == 1 && posicion[3] == 1) || (posicion[1] == 1 && posicion[2] == 0 && posicion[3] == 0))
+  {
+    pTres = 1;
+  }
+}
+
+int readButtons()
+{
+    int value = analogRead(0); // Leemos A0
+    // Mis botones dan:  0, 145, 329,507,743
+    // Y ahora los comparamos con un margen comodo
+    if (value > 900)
+        return BUTTON_NONE; // Ningun boton pulsado
+    if (value < 50)
+        return BUTTON_RIGHT;
+    if (value < 250)
+        return BUTTON_UP;
+    if (value < 450)
+        return BUTTON_DOWN;
+    if (value < 650)
+        return BUTTON_LEFT;
+    if (value < 850)
+        return BUTTON_SELECT;
+    return BUTTON_NONE; // Por si todo falla
+}
